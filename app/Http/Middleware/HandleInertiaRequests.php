@@ -7,33 +7,49 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that is loaded on the first page visit.
-     *
-     * @var string
-     */
-    protected $rootView = 'app';
+    // ... código existente
 
-    /**
-     * Determine the current asset version.
-     */
-    public function version(Request $request): ?string
-    {
-        return parent::version($request);
-    }
-
-    /**
-     * Define the props that are shared by default.
-     *
-     * @return array<string, mixed>
-     */
     public function share(Request $request): array
     {
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'role' => $request->user()->role->nombre ?? null,
+                ] : null,
             ],
+            'modules' => $request->user() ? $this->getModulosDisponibles($request->user()) : [],
         ];
+    }
+
+    private function getModulosDisponibles($user)
+    {
+        $modulos = $user->getModulosDisponibles();
+
+        // Construir jerarquía padre/hijo
+        $padres = $modulos->filter(fn($m) => is_null($m->parent_id));
+
+        return $padres->map(function ($padre) use ($modulos) {
+            return [
+                'id' => $padre->id,
+                'nombre' => $padre->nombre,
+                'slug' => $padre->slug,
+                'icono' => $padre->icono,
+                'ruta' => $padre->ruta,
+                'children' => $modulos
+                    ->filter(fn($m) => $m->parent_id === $padre->id)
+                    ->map(fn($hijo) => [
+                        'id' => $hijo->id,
+                        'nombre' => $hijo->nombre,
+                        'slug' => $hijo->slug,
+                        'ruta' => $hijo->ruta,
+                    ])
+                    ->values()
+                    ->toArray(),
+            ];
+        })->values()->toArray();
     }
 }
