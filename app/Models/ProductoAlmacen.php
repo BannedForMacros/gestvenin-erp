@@ -36,7 +36,7 @@ class ProductoAlmacen extends Model
     public function unidadesMedida()
     {
         return $this->belongsToMany(UnidadMedida::class, 'producto_unidades', 'producto_id', 'unidad_medida_id')
-            ->withPivot('factor_conversion', 'codigo_barras', 'es_unidad_base', 'activo')
+            ->withPivot('codigo_barras', 'es_unidad_base', 'activo')
             ->withTimestamps();
     }
 
@@ -61,47 +61,39 @@ class ProductoAlmacen extends Model
     // Helper: Convertir cantidad de unidad específica a base
     public function convertirAUnidadBase($cantidad, $unidadMedidaId)
     {
-        $unidad = $this->unidadesMedida()->where('unidad_medida_id', $unidadMedidaId)->first();
-        
-        if (!$unidad) {
-            throw new \Exception("Unidad de medida no configurada para este producto");
-        }
-        
-        return $cantidad * $unidad->pivot->factor_conversion;
+        $unidad = UnidadMedida::findOrFail($unidadMedidaId);
+        return $cantidad * $unidad->factor_conversion;
     }
 
     // Helper: Convertir de unidad base a unidad específica
     public function convertirDesdeUnidadBase($cantidadBase, $unidadMedidaId)
     {
-        $unidad = $this->unidadesMedida()->where('unidad_medida_id', $unidadMedidaId)->first();
+        $unidad = UnidadMedida::findOrFail($unidadMedidaId);
         
-        if (!$unidad) {
-            throw new \Exception("Unidad de medida no configurada para este producto");
-        }
-        
-        if ($unidad->pivot->factor_conversion == 0) {
+        if ($unidad->factor_conversion == 0) {
             return 0;
         }
         
-        return $cantidadBase / $unidad->pivot->factor_conversion;
+        return $cantidadBase / $unidad->factor_conversion;
     }
 
-    // Helper: Obtener unidad base del producto
+    // Helper: Obtener unidad base del producto (marcada en pivot)
     public function getUnidadBaseProducto()
     {
         return $this->unidadesMedida()->wherePivot('es_unidad_base', 1)->first();
     }
 
     // Helper: Agregar unidad de medida al producto
-    public function agregarUnidadMedida($unidadMedidaId, $factorConversion, $codigoBarras = null, $esUnidadBase = false)
+    public function agregarUnidadMedida($unidadMedidaId, $codigoBarras = null, $esUnidadBase = false)
     {
         // Si es unidad base, desmarcar las demás
         if ($esUnidadBase) {
-            $this->unidadesMedida()->update(['es_unidad_base' => 0]);
+            \DB::table('producto_unidades')
+                ->where('producto_id', $this->id)
+                ->update(['es_unidad_base' => 0]);
         }
 
         $this->unidadesMedida()->attach($unidadMedidaId, [
-            'factor_conversion' => $factorConversion,
             'codigo_barras' => $codigoBarras,
             'es_unidad_base' => $esUnidadBase ? 1 : 0,
             'activo' => 1,
@@ -109,20 +101,38 @@ class ProductoAlmacen extends Model
     }
 
     // Helper: Actualizar unidad de medida del producto
-    public function actualizarUnidadMedida($unidadMedidaId, $factorConversion, $codigoBarras = null, $esUnidadBase = false)
+    public function actualizarUnidadMedida($unidadMedidaId, $codigoBarras = null, $esUnidadBase = false)
     {
         // Si es unidad base, desmarcar las demás
         if ($esUnidadBase) {
-            $this->unidadesMedida()->updateExistingPivot(
-                $this->unidadesMedida()->pluck('id')->toArray(),
-                ['es_unidad_base' => 0]
-            );
+            \DB::table('producto_unidades')
+                ->where('producto_id', $this->id)
+                ->update(['es_unidad_base' => 0]);
         }
 
         $this->unidadesMedida()->updateExistingPivot($unidadMedidaId, [
-            'factor_conversion' => $factorConversion,
             'codigo_barras' => $codigoBarras,
             'es_unidad_base' => $esUnidadBase ? 1 : 0,
         ]);
+    }
+
+    // Relación: Inventario
+    public function inventario()
+    {
+        return $this->hasOne(InventarioAlmacenCentral::class, 'producto_id');
+    }
+
+    // Helper: Obtener o crear inventario
+    public function obtenerOCrearInventario()
+    {
+        return $this->inventario()->firstOrCreate(
+            ['producto_id' => $this->id],
+            [
+                'stock_actual' => 0,
+                'stock_minimo' => 0,
+                'precio_unitario' => 0,
+                'precio_total' => 0,
+            ]
+        );
     }
 }

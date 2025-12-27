@@ -27,7 +27,7 @@ class ProductoAlmacenController extends Controller
                 'total' => $productos->count(),
             ],
             'categorias' => CategoriaProducto::activos()->get(['id', 'nombre']),
-            'unidadesBase' => UnidadMedida::activos()->get(['id', 'nombre', 'abreviatura']),
+            'unidadesBase' => UnidadMedida::activos()->get(['id', 'nombre', 'abreviatura', 'factor_conversion']),
             'permisos' => [
                 'puede_crear' => auth()->user()->puedeCrear('productos-central'),
                 'puede_editar' => auth()->user()->puedeEditar('productos-central'),
@@ -49,7 +49,6 @@ class ProductoAlmacenController extends Controller
             'unidad_base_id' => 'required|exists:unidades_medida,id',
             'unidades_medida' => 'required|array|min:1',
             'unidades_medida.*.unidad_medida_id' => 'required|exists:unidades_medida,id',
-            'unidades_medida.*.factor_conversion' => 'required|numeric|min:0.0001',
             'unidades_medida.*.codigo_barras' => 'nullable|string|max:100',
             'unidades_medida.*.es_unidad_base' => 'boolean',
         ]);
@@ -65,7 +64,6 @@ class ProductoAlmacenController extends Controller
         foreach ($validated['unidades_medida'] as $unidad) {
             $producto->agregarUnidadMedida(
                 $unidad['unidad_medida_id'],
-                $unidad['factor_conversion'],
                 $unidad['codigo_barras'] ?? null,
                 $unidad['es_unidad_base'] ?? false
             );
@@ -91,7 +89,6 @@ class ProductoAlmacenController extends Controller
             'activo' => 'required|integer|in:0,1',
             'unidades_medida' => 'required|array|min:1',
             'unidades_medida.*.unidad_medida_id' => 'required|exists:unidades_medida,id',
-            'unidades_medida.*.factor_conversion' => 'required|numeric|min:0.0001',
             'unidades_medida.*.codigo_barras' => 'nullable|string|max:100',
             'unidades_medida.*.es_unidad_base' => 'boolean',
         ]);
@@ -110,7 +107,6 @@ class ProductoAlmacenController extends Controller
         foreach ($validated['unidades_medida'] as $unidad) {
             $producto->agregarUnidadMedida(
                 $unidad['unidad_medida_id'],
-                $unidad['factor_conversion'],
                 $unidad['codigo_barras'] ?? null,
                 $unidad['es_unidad_base'] ?? false
             );
@@ -127,9 +123,6 @@ class ProductoAlmacenController extends Controller
         }
 
         $producto = ProductoAlmacen::findOrFail($id);
-
-        // Aquí podrías verificar si tiene movimientos de inventario
-        // Por ahora solo desactivamos
         $producto->update(['activo' => 0]);
 
         return redirect()->route('almacen-central.productos.index')

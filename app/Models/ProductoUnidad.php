@@ -11,14 +11,12 @@ class ProductoUnidad extends Pivot
     protected $fillable = [
         'producto_id',
         'unidad_medida_id',
-        'factor_conversion',
         'codigo_barras',
         'es_unidad_base',
         'activo',
     ];
 
     protected $casts = [
-        'factor_conversion' => 'decimal:4',
         'es_unidad_base' => 'integer',
         'activo' => 'integer',
     ];

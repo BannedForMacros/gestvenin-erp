@@ -126,8 +126,8 @@ export default function EditForm({ unidad, unidadesBase, onClose }) {
                     <Input
                         id="factor_conversion"
                         type="number"
-                        step="0.0001"
-                        min="0.0001"
+                        step="0.01"
+                        min="0.01"
                         value={data.factor_conversion}
                         onChange={(e) => setData('factor_conversion', e.target.value)}
                         error={errors.factor_conversion}

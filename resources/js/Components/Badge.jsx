@@ -25,6 +25,13 @@ export default function Badge({
         
         // Primary (tu color del sistema)
         primary: 'bg-primary-100 text-primary-800 hover:bg-primary-200',
+
+        // Estados de requerimientos
+        borrador: 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+        enviado: 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+        validado: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200',
+        rechazado: 'bg-rose-100 text-rose-800 hover:bg-rose-200',
+        comprado: 'bg-cyan-100 text-cyan-800 hover:bg-cyan-200',
     };
 
     return (
@@ -58,6 +65,14 @@ Badge.fromStatus = function({ status, labels }) {
         proceso: { variant: 'processing', label: 'En Proceso' },
         completado: { variant: 'completed', label: 'Completado' },
         cancelado: { variant: 'cancelled', label: 'Cancelado' },
+        
+        // Estados de requerimientos
+        borrador: { variant: 'borrador', label: 'Borrador' },
+        enviado: { variant: 'enviado', label: 'Enviado' },
+        validado: { variant: 'validado', label: 'Validado' },
+        rechazado: { variant: 'rechazado', label: 'Rechazado' },
+        comprado: { variant: 'comprado', label: 'Comprado' },
+        
         ...labels, // Override personalizado
     };
 

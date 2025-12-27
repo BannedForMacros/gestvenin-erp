@@ -20,7 +20,6 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
 
     const [nuevaUnidad, setNuevaUnidad] = useState({
         unidad_medida_id: '',
-        factor_conversion: '',
         codigo_barras: '',
         es_unidad_base: false,
     });
@@ -30,7 +29,6 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
         if (producto.unidades_medida && producto.unidades_medida.length > 0) {
             const unidadesFormateadas = producto.unidades_medida.map(unidad => ({
                 unidad_medida_id: unidad.id,
-                factor_conversion: unidad.pivot?.factor_conversion || '',
                 codigo_barras: unidad.pivot?.codigo_barras || '',
                 es_unidad_base: unidad.pivot?.es_unidad_base === 1,
             }));
@@ -48,12 +46,22 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
         label: `${unidad.nombre} (${unidad.abreviatura})`,
     }));
 
+    // Actualizar unidad_base_id cuando cambian las unidades
+    useEffect(() => {
+        if (data.unidades_medida.length > 0) {
+            const unidadBase = data.unidades_medida.find(u => u.es_unidad_base);
+            if (unidadBase) {
+                setData('unidad_base_id', unidadBase.unidad_medida_id);
+            }
+        }
+    }, [data.unidades_medida]);
+
     const handleAgregarUnidad = () => {
-        if (!nuevaUnidad.unidad_medida_id || !nuevaUnidad.factor_conversion) {
+        if (!nuevaUnidad.unidad_medida_id) {
             return;
         }
 
-        // Verificar que no esté duplicada
+        // Verificar duplicados
         const yaExiste = data.unidades_medida.some(
             u => u.unidad_medida_id === nuevaUnidad.unidad_medida_id
         );
@@ -63,27 +71,37 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
             return;
         }
 
+        // Si es la primera unidad, marcarla automáticamente como base
+        const esPrimeraUnidad = data.unidades_medida.length === 0;
+        const esUnidadBase = esPrimeraUnidad || nuevaUnidad.es_unidad_base;
+
         // Si marca como unidad base, desmarcar las demás
-        const unidadesActualizadas = nuevaUnidad.es_unidad_base
+        const unidadesActualizadas = esUnidadBase
             ? data.unidades_medida.map(u => ({ ...u, es_unidad_base: false }))
             : data.unidades_medida;
 
         setData('unidades_medida', [
             ...unidadesActualizadas,
-            { ...nuevaUnidad },
+            { ...nuevaUnidad, es_unidad_base: esUnidadBase },
         ]);
 
         // Limpiar formulario
         setNuevaUnidad({
             unidad_medida_id: '',
-            factor_conversion: '',
             codigo_barras: '',
             es_unidad_base: false,
         });
     };
 
     const handleEliminarUnidad = (index) => {
+        const unidadEliminada = data.unidades_medida[index];
         const nuevasUnidades = data.unidades_medida.filter((_, i) => i !== index);
+        
+        // Si eliminamos la unidad base y quedan más, marcar la primera como base
+        if (unidadEliminada.es_unidad_base && nuevasUnidades.length > 0) {
+            nuevasUnidades[0].es_unidad_base = true;
+        }
+        
         setData('unidades_medida', nuevasUnidades);
     };
 
@@ -100,16 +118,19 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
         return unidad ? `${unidad.nombre} (${unidad.abreviatura})` : '';
     };
 
+    const getUnidadFactor = (unidadId) => {
+        const unidad = unidadesBase.find(u => u.id === parseInt(unidadId));
+        return unidad ? unidad.factor_conversion : 1;
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Validar que tenga al menos una unidad
         if (data.unidades_medida.length === 0) {
             alert('Debes tener al menos una unidad de medida');
             return;
         }
 
-        // Validar que tenga una unidad base marcada
         const tieneUnidadBase = data.unidades_medida.some(u => u.es_unidad_base);
         if (!tieneUnidadBase) {
             alert('Debes marcar una unidad como base');
@@ -139,7 +160,7 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
                 </div>
 
                 {/* Categoría */}
-                <div>
+                <div className="md:col-span-2">
                     <Label htmlFor="categoria_id" value="Categoría" required />
                     <Select
                         id="categoria_id"
@@ -147,18 +168,6 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
                         onChange={(e) => setData('categoria_id', e.target.value)}
                         options={categoriaOptions}
                         error={errors.categoria_id}
-                    />
-                </div>
-
-                {/* Unidad Base */}
-                <div>
-                    <Label htmlFor="unidad_base_id" value="Unidad de Inventario" required />
-                    <Select
-                        id="unidad_base_id"
-                        value={data.unidad_base_id}
-                        onChange={(e) => setData('unidad_base_id', e.target.value)}
-                        options={unidadBaseOptions}
-                        error={errors.unidad_base_id}
                     />
                 </div>
 
@@ -202,13 +211,25 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
                 </div>
             </div>
 
+            {/* Info Box */}
+            {data.unidades_medida.length > 0 && (
+                <div className="rounded-lg bg-blue-50 p-4">
+                    <p className="text-sm text-blue-800">
+                        <strong>Unidad de Inventario:</strong> El stock se guardará en{' '}
+                        <span className="font-semibold">
+                            {getUnidadNombre(data.unidad_base_id)}
+                        </span>
+                    </p>
+                </div>
+            )}
+
             {/* Sección: Unidades de Medida */}
             <div className="rounded-lg border-2 border-dashed border-gray-300 p-6">
                 <h3 className="mb-4 text-lg font-semibold text-gray-900">Unidades de Medida</h3>
                 
                 {/* Formulario para agregar unidad */}
                 <div className="mb-4 space-y-4 rounded-lg bg-gray-50 p-4">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
                         {/* Unidad */}
                         <div className="md:col-span-4">
                             <Label htmlFor="nueva_unidad" value="Unidad" />
@@ -221,34 +242,20 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
                             />
                         </div>
 
-                        {/* Factor */}
-                        <div className="md:col-span-3">
-                            <Label htmlFor="factor" value="Factor" />
-                            <Input
-                                id="factor"
-                                type="number"
-                                step="0.0001"
-                                min="0.0001"
-                                value={nuevaUnidad.factor_conversion}
-                                onChange={(e) => setNuevaUnidad({ ...nuevaUnidad, factor_conversion: e.target.value })}
-                                placeholder="250"
-                            />
-                        </div>
-
                         {/* Código Barras */}
-                        <div className="md:col-span-3">
+                        <div className="md:col-span-1">
                             <Label htmlFor="codigo_barras" value="Código Barras" />
                             <Input
                                 id="codigo_barras"
                                 type="text"
                                 value={nuevaUnidad.codigo_barras}
                                 onChange={(e) => setNuevaUnidad({ ...nuevaUnidad, codigo_barras: e.target.value })}
-                                placeholder="7501234567890"
+                                placeholder="Opcional"
                             />
                         </div>
 
                         {/* Botón Agregar */}
-                        <div className="flex items-end md:col-span-2">
+                        <div className="flex items-end md:col-span-1">
                             <Button
                                 type="button"
                                 variant="primary"
@@ -260,20 +267,22 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
                         </div>
                     </div>
 
-                    {/* Checkbox: Es unidad base */}
-                    <div>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={nuevaUnidad.es_unidad_base}
-                                onChange={(e) => setNuevaUnidad({ ...nuevaUnidad, es_unidad_base: e.target.checked })}
-                                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                                Marcar como unidad base
-                            </span>
-                        </label>
-                    </div>
+                    {/* Checkbox: Solo si NO es la primera */}
+                    {data.unidades_medida.length > 0 && (
+                        <div>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={nuevaUnidad.es_unidad_base}
+                                    onChange={(e) => setNuevaUnidad({ ...nuevaUnidad, es_unidad_base: e.target.checked })}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                />
+                                <span className="text-sm text-gray-700">
+                                    Marcar como unidad base
+                                </span>
+                            </label>
+                        </div>
+                    )}
                 </div>
 
                 {/* Tabla de unidades agregadas */}
@@ -295,8 +304,8 @@ export default function EditForm({ producto, categorias, unidadesBase, onClose }
                                         <td className="px-4 py-3 text-sm text-gray-900">
                                             {getUnidadNombre(unidad.unidad_medida_id)}
                                         </td>
-                                        <td className="px-4 py-3 text-center text-sm text-gray-900">
-                                            {unidad.factor_conversion}
+                                        <td className="px-4 py-3 text-center text-sm text-gray-600">
+                                            {getUnidadFactor(unidad.unidad_medida_id)}
                                         </td>
                                         <td className="px-4 py-3 text-center text-sm text-gray-600">
                                             {unidad.codigo_barras || '-'}

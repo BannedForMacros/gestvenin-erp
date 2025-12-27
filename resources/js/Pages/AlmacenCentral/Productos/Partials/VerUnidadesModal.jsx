@@ -1,4 +1,5 @@
 import Badge from '@/Components/Badge';
+import { formatNumber } from '@/Utils/formatters';
 
 export default function VerUnidadesModal({ producto }) {
     return (
@@ -17,6 +18,12 @@ export default function VerUnidadesModal({ producto }) {
                         </p>
                     </div>
                 </div>
+                {producto.descripcion && (
+                    <div className="mt-3">
+                        <span className="text-sm text-gray-600">Descripción:</span>
+                        <p className="text-gray-900">{producto.descripcion}</p>
+                    </div>
+                )}
             </div>
 
             {/* Tabla de unidades */}
@@ -28,7 +35,7 @@ export default function VerUnidadesModal({ producto }) {
                                 Unidad
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider text-white">
-                                Factor
+                                Factor de Conversión
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold uppercase tracking-wider text-white">
                                 Código Barras
@@ -50,7 +57,7 @@ export default function VerUnidadesModal({ producto }) {
                                     </td>
                                     <td className="px-6 py-4 text-center text-base text-gray-900">
                                         <Badge variant="default">
-                                            1 {unidad.abreviatura} = {unidad.pivot?.factor_conversion} {producto.unidad_base?.abreviatura}
+                                            1 {unidad.abreviatura} = {formatNumber(unidad.factor_conversion)} {producto.unidad_base?.abreviatura}
                                         </Badge>
                                     </td>
                                     <td className="px-6 py-4 text-center text-sm text-gray-600">

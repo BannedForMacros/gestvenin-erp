@@ -18,7 +18,7 @@ class UnidadMedida extends Model
     ];
 
     protected $casts = [
-        'factor_conversion' => 'decimal:4',
+        'factor_conversion' => 'decimal:2',
         'activo' => 'integer',
     ];
 

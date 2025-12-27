@@ -11,6 +11,8 @@ use App\Http\Controllers\Configuracion\UserModuleController;
 use App\Http\Controllers\Configuracion\CategoriaAlmacenController;
 use App\Http\Controllers\Configuracion\UnidadMedidaController;
 use App\Http\Controllers\AlmacenCentral\ProductoAlmacenController;
+use App\Http\Controllers\AlmacenCentral\RequerimientoController;
+use App\Http\Controllers\AlmacenCentral\InventarioAlmacenCentralController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -88,11 +90,37 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Almacén Central
     Route::prefix('almacen-central')->name('almacen-central.')->group(function () {
         
+        // Inventario
+        Route::get('inventario', [InventarioAlmacenCentralController::class, 'index'])->name('inventario.index');
+        Route::get('inventario/{id}', [InventarioAlmacenCentralController::class, 'show'])->name('inventario.show');
+        Route::put('inventario/{id}', [InventarioAlmacenCentralController::class, 'update'])->name('inventario.update');
+        Route::put('inventario/{id}/ajustar', [InventarioAlmacenCentralController::class, 'ajustar'])->name('inventario.ajustar');
+        
+        // Reportes de inventario
+        Route::get('inventario/reportes/valorizacion', [InventarioAlmacenCentralController::class, 'valorizacion'])->name('inventario.valorizacion');
+        Route::get('inventario/reportes/sin-stock', [InventarioAlmacenCentralController::class, 'sinStock'])->name('inventario.sin-stock');
+        Route::get('inventario/reportes/bajo-stock', [InventarioAlmacenCentralController::class, 'bajoStockMinimo'])->name('inventario.bajo-stock');
+
         // Productos
         Route::get('productos', [ProductoAlmacenController::class, 'index'])->name('productos.index');
         Route::post('productos', [ProductoAlmacenController::class, 'store'])->name('productos.store');
         Route::put('productos/{id}', [ProductoAlmacenController::class, 'update'])->name('productos.update');
         Route::delete('productos/{id}', [ProductoAlmacenController::class, 'destroy'])->name('productos.destroy');
+
+        // Requerimientos
+        Route::get('requerimientos', [RequerimientoController::class, 'index'])->name('requerimientos.index');
+        Route::get('requerimientos/crear', [RequerimientoController::class, 'create'])->name('requerimientos.create');
+        Route::post('requerimientos', [RequerimientoController::class, 'store'])->name('requerimientos.store');
+        Route::get('requerimientos/{id}', [RequerimientoController::class, 'show'])->name('requerimientos.show');
+        Route::get('requerimientos/{id}/editar', [RequerimientoController::class, 'edit'])->name('requerimientos.edit');
+        Route::put('requerimientos/{id}', [RequerimientoController::class, 'update'])->name('requerimientos.update');
+        Route::delete('requerimientos/{id}', [RequerimientoController::class, 'destroy'])->name('requerimientos.destroy');
+        
+        // Acciones de requerimientos
+        Route::post('requerimientos/{id}/enviar', [RequerimientoController::class, 'enviar'])->name('requerimientos.enviar');
+        Route::post('requerimientos/{id}/aprobar', [RequerimientoController::class, 'aprobar'])->name('requerimientos.aprobar');
+        Route::post('requerimientos/{id}/rechazar', [RequerimientoController::class, 'rechazar'])->name('requerimientos.rechazar');
+        Route::post('requerimientos/generar-automatico', [RequerimientoController::class, 'generarAutomatico'])->name('requerimientos.generar-automatico');
     });
 });
 

@@ -44,7 +44,7 @@ class UnidadMedidaController extends Controller
             'nombre' => 'required|string|max:100',
             'abreviatura' => 'required|string|max:20',
             'unidad_base_id' => 'nullable|exists:unidades_medida,id',
-            'factor_conversion' => 'required|numeric|min:0.0001',
+            'factor_conversion' => 'required|numeric|min:0.01',
             'descripcion' => 'nullable|string',
         ]);
 
@@ -71,7 +71,7 @@ class UnidadMedidaController extends Controller
             'nombre' => 'required|string|max:100',
             'abreviatura' => 'required|string|max:20',
             'unidad_base_id' => 'nullable|exists:unidades_medida,id',
-            'factor_conversion' => 'required|numeric|min:0.0001',
+            'factor_conversion' => 'required|numeric|min:0.01',
             'descripcion' => 'nullable|string',
             'activo' => 'required|integer|in:0,1',
         ]);
